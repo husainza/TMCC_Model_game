@@ -200,30 +200,7 @@
             margin: 20px 0;
         }
         
-        #comboIndicator {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px;
-            font-weight: bold;
-            color: #00ff88;
-            text-shadow: 0 0 20px #00ff88;
-            display: none;
-            pointer-events: none;
-            animation: comboFade 1s ease-out forwards;
-        }
-        
-        @keyframes comboFade {
-            0% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -80%) scale(1.5);
-            }
-        }
+
         
         .cart-kill-counter {
             position: absolute;
@@ -371,7 +348,6 @@
                             this.killCount++;
                             gameState.score += 100 * (1 + gameState.combo * 0.1);
                             gameState.combo++;
-                            showCombo();
                             
                             // Show kill counter
                             this.showKillCounter();
@@ -595,16 +571,7 @@
             
             gameState.lastDeployTime = Date.now();
         }
-        
-        // Show combo indicator
-        function showCombo() {
-            const indicator = document.getElementById('comboIndicator');
-            indicator.textContent = `${gameState.combo}x COMBO!`;
-            indicator.style.display = 'block';
-            setTimeout(() => {
-                indicator.style.display = 'none';
-            }, 1000);
-        }
+
         
         // Update TMCC visual
         function updateTMCC() {
@@ -641,6 +608,24 @@
                 }
                 return true;
             });
+            
+            // Clean up any orphaned targets (backup check)
+            gameState.bCells.forEach(bCell => {
+                if (bCell.isTargeted) {
+                    // Check if any living CAR-T is actually targeting this B-cell
+                    let hasHunter = false;
+                    gameState.carTCells.forEach(cart => {
+                        if (cart.target === bCell) {
+                            hasHunter = true;
+                        }
+                    });
+                    // If no hunter found, release the B-cell
+                    if (!hasHunter) {
+                        bCell.isTargeted = false;
+                    }
+                }
+            });
+            
             gameState.bCells = gameState.bCells.filter(p => p.life > 0);
             gameState.lnpParticles = gameState.lnpParticles.filter(p => p.life > 0);
             
