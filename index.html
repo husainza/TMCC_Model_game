@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAR-T Cell Battle: LNP Commander</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            border: 2px solid #00ff88;
+            display: block;
+            margin: 0 auto;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+        }
+        
+        .ui-panel {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        #stats {
+            top: 20px;
+            left: 20px;
+            width: 250px;
+        }
+        
+        #controls {
+            top: 20px;
+            right: 20px;
+            width: 250px;
+            text-align: center;
+        }
+        
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #00ff88;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            display: none;
+        }
+        
+        .stat-row {
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat-label {
+            color: #00ff88;
+            font-size: 14px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00ffff);
+            transition: width 0.3s ease;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #00ff88, #00ffff);
+            border: none;
+            color: #000;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.5);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+        
+        .dose-control {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.1);
+            border-radius: 10px;
+            border: 1px solid #00ff88;
+        }
+        
+        .dose-slider {
+            width: 100%;
+            margin: 10px 0;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .dose-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00ff88;
+        }
+        
+        .dose-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #00ff88;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00ff88;
+        }
+        
+        .dose-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        
+        .phase-indicator {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 18px;
+            color: #00ff88;
+            text-transform: uppercase;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        
+        #tutorial {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 600px;
+            text-align: center;
+        }
+        
+        .score {
+            font-size: 24px;
+            color: #ffd700;
+            margin: 20px 0;
+        }
+        
+        #comboIndicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff88;
+            display: none;
+            pointer-events: none;
+            animation: comboFade 1s ease-out forwards;
+        }
+        
+        @keyframes comboFade {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -80%) scale(1.5);
+            }
+        }
+        
+        .cart-kill-counter {
+            position: absolute;
+            font-size: 12px;
+            font-weight: bold;
+            color: #ffd700;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2px 6px;
+            border-radius: 10px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="stats" class="ui-panel">
+        <h3 style="color: #00ff88; margin-bottom: 15px;">Mission Status</h3>
+        
+        <div class="stat-row">
+            <span class="stat-label">Phase</span>
+            <span class="stat-value" id="phaseNum">1</span>
+        </div>
+        
+        <div class="stat-row">
+            <span class="stat-label">mRNA Level</span>
+            <div style="flex: 1; margin-left: 10px;">
+                <div class="bar">
+                    <div class="bar-fill" id="mRNABar" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-row">
+            <span class="stat-label">CAR-T Cells</span>
+            <span class="stat-value" id="carTCount">0</span>
+        </div>
+        
+        <div class="stat-row">
+            <span class="stat-label">B-Cells Remaining</span>
+            <span class="stat-value" id="bCellCount">60</span>
+        </div>
+        
+        <div class="stat-row">
+            <span class="stat-label">TMCC Level</span>
+            <span class="stat-value" id="tmccText" style="color: #ff0044">HIGH</span>
+        </div>
+        
+        <div class="stat-row" style="margin-top: 20px;">
+            <span class="stat-label">Score</span>
+            <span class="stat-value" id="score" style="color: #ffd700">0</span>
+        </div>
+    </div>
+    
+    <div id="controls" class="ui-panel">
+        <h3 style="color: #00ff88; margin-bottom: 15px;">LNP Control</h3>
+        
+        <div class="dose-control">
+            <div class="stat-label">mRNA Dose Amount</div>
+            <input type="range" class="dose-slider" id="doseSlider" min="1" max="5" value="1.3" step="0.01">
+            <div class="dose-display">
+                <span>10</span>
+                <span id="doseValue" style="color: #00ff88; font-weight: bold;">20 mRNA</span>
+                <span>100K</span>
+            </div>
+        </div>
+        
+        <button id="deployLNP">Deploy LNP</button>
+        <button id="resetGame" style="background: linear-gradient(135deg, #ff0044, #ff6644); margin-top: 10px;">Reset Game</button>
+        <div class="phase-indicator" id="phaseText">Loading Phase</div>
+    </div>
+    
+    <div id="tutorial" class="ui-panel">
+        <h4 style="color: #00ff88; margin-bottom: 10px;">Mission Briefing</h4>
+        <p>Deploy LNPs to create CAR-T cells! Each CAR-T can eliminate 3 B-cells. High B-cell counts increase TMCC (red zone), causing rapid CAR-T clearance. <strong style="color: #ff00ff;">Warning: B-cells continuously repopulate!</strong> Adjust your dose and maintain pressure to achieve complete depletion!</p>
+    </div>
+    
+    <div id="gameOver" class="ui-panel">
+        <h2 style="color: #00ff88; margin-bottom: 20px;">Mission Complete!</h2>
+        <div class="score" id="finalScore">Final Score: 0</div>
+        <p id="performance" style="margin-bottom: 20px;"></p>
+        <button onclick="location.reload()">Play Again</button>
+    </div>
+    
+    <div id="comboIndicator"></div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Game state
+        let gameState = {
+            phase: 1,
+            mRNA: 100000,
+            carTCells: [],
+            bCells: [],
+            lnpParticles: [],
+            score: 0,
+            tmccLevel: 1,
+            combo: 0,
+            lastDeployTime: 0,
+            gameActive: true,
+            currentDose: 20
+        };
+        
+        // Classes
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.radius = type === 'lnp' ? 8 : type === 'cart' ? 15 : 10;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.life = type === 'cart' ? 150 : 100; // CAR-T cells start with more life
+                this.target = null;
+                this.speed = type === 'cart' ? 5 : 1; // Increased from 3
+                this.color = type === 'lnp' ? '#00ff88' : type === 'cart' ? '#00ffff' : '#ff0044';
+                this.killCount = 0;
+                this.maxKills = 3;
+                this.isTargeted = false; // For B-cells to track if they're being hunted
+            }
+            
+            update() {
+                if (this.type === 'cart' && this.killCount < this.maxKills) {
+                    if (this.target && this.target.life > 0) {
+                        // CAR-T cells hunt B-cells
+                        const dx = this.target.x - this.x;
+                        const dy = this.target.y - this.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist > 5) {
+                            this.x += (dx / dist) * this.speed;
+                            this.y += (dy / dist) * this.speed;
+                        }
+                        
+                        // Check collision
+                        if (dist < this.radius + this.target.radius) {
+                            this.target.life = 0;
+                            this.target.isTargeted = false;
+                            this.killCount++;
+                            gameState.score += 100 * (1 + gameState.combo * 0.1);
+                            gameState.combo++;
+                            showCombo();
+                            
+                            // Show kill counter
+                            this.showKillCounter();
+                            
+                            // Check if exhausted
+                            if (this.killCount >= this.maxKills) {
+                                this.life = 0; // Immediate death after 3rd kill
+                            } else {
+                                // Find new target if still has kills left
+                                this.target = null;
+                                this.findTarget();
+                            }
+                        }
+                    } else {
+                        // Find new target if no valid target
+                        this.findTarget();
+                        // Random movement if no target
+                        if (!this.target) {
+                            this.x += this.vx;
+                            this.y += this.vy;
+                        }
+                    }
+                } else if (this.type === 'cart') {
+                    // This shouldn't happen now, but kept as fallback
+                    this.life = 0;
+                } else {
+                    // Random movement for other particles
+                    this.x += this.vx;
+                    this.y += this.vy;
+                }
+                
+                // Boundary check
+                if (this.x < this.radius || this.x > canvas.width - this.radius) this.vx *= -1;
+                if (this.y < this.radius || this.y > canvas.height - this.radius) this.vy *= -1;
+                
+                // TMCC decay for CAR-T cells
+                if (this.type === 'cart' && this.killCount < this.maxKills) {
+                    this.life -= gameState.tmccLevel * 0.4; // Reduced from 0.8
+                }
+                
+                // Natural decay
+                if (this.type !== 'bcell') {
+                    this.life -= 0.05; // Reduced from 0.1
+                }
+            }
+            
+            findTarget() {
+                // Release current target if any
+                if (this.target && this.target.isTargeted) {
+                    this.target.isTargeted = false;
+                }
+                
+                let closest = null;
+                let minDist = Infinity;
+                
+                gameState.bCells.forEach(bCell => {
+                    if (bCell.life > 0 && !bCell.isTargeted) { // Only target untargeted B-cells
+                        const dist = Math.sqrt((bCell.x - this.x) ** 2 + (bCell.y - this.y) ** 2);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            closest = bCell;
+                        }
+                    }
+                });
+                
+                this.target = closest;
+                if (closest) {
+                    closest.isTargeted = true; // Mark as targeted
+                }
+            }
+            
+            showKillCounter() {
+                const counter = document.createElement('div');
+                counter.className = 'cart-kill-counter';
+                counter.textContent = `${this.killCount}/${this.maxKills}`;
+                counter.style.left = this.x + 'px';
+                counter.style.top = this.y - 20 + 'px';
+                document.body.appendChild(counter);
+                
+                setTimeout(() => counter.remove(), 1000);
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.type === 'bcell' ? 1 : this.life / 100;
+                
+                // Glow effect
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                
+                // Inner detail for B-cells
+                if (this.type === 'bcell' && this.isTargeted) {
+                    // Show targeting indicator
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+                
+                // Inner detail for CAR-T cells
+                if (this.type === 'cart') {
+                    // Draw kill counter
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(`${this.killCount}/${this.maxKills}`, this.x, this.y);
+                    
+                    // Draw exhausted indicator
+                    if (this.killCount >= this.maxKills) {
+                        ctx.strokeStyle = '#ff0000';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(this.x, this.y, this.radius + 5, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        // Initialize B-cells (3x the CAR-T cells we expect)
+        function initBCells() {
+            for (let i = 0; i < 60; i++) {
+                gameState.bCells.push(new Particle(
+                    Math.random() * (canvas.width - 200) + 100,
+                    Math.random() * (canvas.height - 100) + 50,
+                    'bcell'
+                ));
+            }
+        }
+        
+        // Deploy LNP
+        function deployLNP() {
+            const dose = gameState.currentDose;
+            if (gameState.mRNA < dose) return;
+            
+            gameState.mRNA -= dose;
+            
+            // Create LNP particles based on dose
+            const particleCount = Math.min(Math.floor(dose / 10), 1000); // Cap at 1000 particles for performance
+            
+            // For massive doses, create particles in waves
+            if (particleCount > 100) {
+                let created = 0;
+                const waveSize = 50;
+                const createWave = () => {
+                    const toCreate = Math.min(waveSize, particleCount - created);
+                    for (let i = 0; i < toCreate; i++) {
+                        gameState.lnpParticles.push(new Particle(
+                            canvas.width / 2 + (Math.random() - 0.5) * 300,
+                            canvas.height / 2 + (Math.random() - 0.5) * 300,
+                            'lnp'
+                        ));
+                    }
+                    created += toCreate;
+                    
+                    if (created < particleCount) {
+                        setTimeout(createWave, 100);
+                    }
+                };
+                createWave();
+            } else {
+                for (let i = 0; i < particleCount; i++) {
+                    gameState.lnpParticles.push(new Particle(
+                        canvas.width / 2 + (Math.random() - 0.5) * 100,
+                        canvas.height / 2 + (Math.random() - 0.5) * 100,
+                        'lnp'
+                    ));
+                }
+            }
+            
+            // Convert to CAR-T cells after delay
+            setTimeout(() => {
+                gameState.lnpParticles.forEach(lnp => {
+                    if (lnp.life > 50) {
+                        gameState.carTCells.push(new Particle(lnp.x, lnp.y, 'cart'));
+                    }
+                });
+                gameState.lnpParticles = [];
+            }, 1000);
+            
+            gameState.lastDeployTime = Date.now();
+        }
+        
+        // Show combo indicator
+        function showCombo() {
+            const indicator = document.getElementById('comboIndicator');
+            indicator.textContent = `${gameState.combo}x COMBO!`;
+            indicator.style.display = 'block';
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 1000);
+        }
+        
+        // Update TMCC visual
+        function updateTMCC() {
+            const tmccText = document.getElementById('tmccText');
+            if (gameState.tmccLevel > 0.7) {
+                tmccText.textContent = 'HIGH';
+                tmccText.style.color = '#ff0044';
+            } else if (gameState.tmccLevel > 0.3) {
+                tmccText.textContent = 'MEDIUM';
+                tmccText.style.color = '#ffaa00';
+            } else {
+                tmccText.textContent = 'LOW';
+                tmccText.style.color = '#00ff44';
+            }
+        }
+        
+        // Update game
+        function update() {
+            if (!gameState.gameActive) return;
+            
+            // Update particles
+            [...gameState.lnpParticles, ...gameState.carTCells, ...gameState.bCells].forEach(particle => {
+                particle.update();
+            });
+            
+            // Remove dead particles
+            gameState.carTCells = gameState.carTCells.filter(p => {
+                if (p.life <= 0) {
+                    // Release target when CAR-T dies
+                    if (p.target && p.target.isTargeted) {
+                        p.target.isTargeted = false;
+                    }
+                    return false;
+                }
+                return true;
+            });
+            gameState.bCells = gameState.bCells.filter(p => p.life > 0);
+            gameState.lnpParticles = gameState.lnpParticles.filter(p => p.life > 0);
+            
+            // B-cell repopulation - increases as B-cells decrease (homeostasis)
+            const repopRate = 0.02 + (1 - gameState.bCells.length / 60) * 0.03; // Higher rate when fewer B-cells
+            if (Math.random() < repopRate && gameState.bCells.length < 80) {
+                // Spawn new B-cells at edges
+                const edge = Math.floor(Math.random() * 4);
+                let x, y;
+                switch(edge) {
+                    case 0: x = 50; y = Math.random() * canvas.height; break;
+                    case 1: x = canvas.width - 50; y = Math.random() * canvas.height; break;
+                    case 2: x = Math.random() * canvas.width; y = 50; break;
+                    case 3: x = Math.random() * canvas.width; y = canvas.height - 50; break;
+                }
+                
+                const newBCell = new Particle(x, y, 'bcell');
+                // Make new B-cells glow briefly
+                newBCell.color = '#ff00ff';
+                setTimeout(() => { newBCell.color = '#ff0044'; }, 500);
+                gameState.bCells.push(newBCell);
+            }
+            
+            // Update TMCC based on B-cell count
+            gameState.tmccLevel = gameState.bCells.length / 60;
+            updateTMCC();
+            
+            // Regenerate mRNA slowly
+            if (gameState.mRNA < 100000) {
+                gameState.mRNA += 20;
+            }
+            
+            // Reset combo if no kills for 2 seconds
+            if (Date.now() - gameState.lastDeployTime > 2000) {
+                gameState.combo = 0;
+            }
+            
+            // Check phase progression
+            const remainingBCells = gameState.bCells.length;
+            if (remainingBCells < 40 && gameState.phase === 1) {
+                gameState.phase = 2;
+                document.getElementById('phaseText').textContent = 'Depletion Phase';
+            } else if (remainingBCells < 20 && gameState.phase === 2) {
+                gameState.phase = 3;
+                document.getElementById('phaseText').textContent = 'Final Phase';
+            }
+            
+            // Check win condition
+            if (remainingBCells === 0 && gameState.carTCells.length === 0 && gameState.lnpParticles.length === 0) {
+                endGame();
+            }
+            
+            updateUI();
+        }
+        
+        // Draw game
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            
+            // Draw TMCC warning zone
+            if (gameState.tmccLevel > 0.7) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            
+            // Draw particles
+            [...gameState.bCells, ...gameState.lnpParticles, ...gameState.carTCells].forEach(particle => {
+                particle.draw();
+            });
+            
+            // Draw connections between CAR-T and targets
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            gameState.carTCells.forEach(cart => {
+                if (cart.target && cart.target.life > 0 && cart.killCount < cart.maxKills) {
+                    ctx.beginPath();
+                    ctx.moveTo(cart.x, cart.y);
+                    ctx.lineTo(cart.target.x, cart.target.y);
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        // Update UI
+        function updateUI() {
+            document.getElementById('phaseNum').textContent = gameState.phase;
+            const mRNAPercent = (gameState.mRNA / 100000) * 100;
+            document.getElementById('mRNABar').style.width = mRNAPercent + '%';
+            document.getElementById('carTCount').textContent = gameState.carTCells.filter(c => c.killCount < c.maxKills).length;
+            document.getElementById('bCellCount').textContent = gameState.bCells.length;
+            document.getElementById('score').textContent = Math.floor(gameState.score);
+            
+            // Update button states
+            document.getElementById('deployLNP').disabled = gameState.mRNA < gameState.currentDose;
+        }
+        
+        // End game
+        function endGame() {
+            gameState.gameActive = false;
+            const finalScore = Math.floor(gameState.score);
+            document.getElementById('finalScore').textContent = `Final Score: ${finalScore}`;
+            
+            let performance = '';
+            if (finalScore > 8000) {
+                performance = 'Outstanding! You achieved complete B-cell depletion with optimal efficiency!';
+            } else if (finalScore > 5000) {
+                performance = 'Excellent work! Your dosing strategy was highly effective.';
+            } else {
+                performance = 'Good effort! Try using lower doses initially and save mRNA for when TMCC is low.';
+            }
+            
+            document.getElementById('performance').textContent = performance;
+            document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Event listeners
+        document.getElementById('deployLNP').addEventListener('click', deployLNP);
+        
+        // Dose slider
+        const doseSlider = document.getElementById('doseSlider');
+        const doseValue = document.getElementById('doseValue');
+        
+        // Logarithmic scale for dose
+        function calculateDose(sliderValue) {
+            // Convert slider value (1-5) to dose (10-100000) on log scale
+            const minLog = Math.log10(10);
+            const maxLog = Math.log10(100000);
+            const scale = (sliderValue - 1) / 4;
+            const logValue = minLog + scale * (maxLog - minLog);
+            return Math.round(Math.pow(10, logValue));
+        }
+        
+        doseSlider.addEventListener('input', (e) => {
+            gameState.currentDose = calculateDose(parseFloat(e.target.value));
+            if (gameState.currentDose >= 1000) {
+                doseValue.textContent = `${(gameState.currentDose / 1000).toFixed(1)}K mRNA`;
+            } else {
+                doseValue.textContent = `${gameState.currentDose} mRNA`;
+            }
+        });
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ') {
+                e.preventDefault();
+                deployLNP();
+            }
+        });
+        
+        // Initialize game
+        initBCells();
+        gameLoop();
+        
+        // Hide tutorial after 10 seconds
+        setTimeout(() => {
+            document.getElementById('tutorial').style.display = 'none';
+        }, 10000);
+        
+        // Resize handler
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
