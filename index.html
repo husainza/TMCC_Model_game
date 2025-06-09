@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CAR-T Cell Battle: LNP Commander</title>
+    <title>CAR-T Cell Battle: LNP Commander - Educational Edition</title>
     <style>
         * {
             margin: 0;
@@ -45,6 +45,34 @@
             right: 20px;
             width: 250px;
             text-align: center;
+        }
+        
+        #sciencePanel {
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            max-height: 300px;
+            display: block;
+        }
+        
+        #tutorialPanel {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #00ff88;
+            display: none;
+            z-index: 100;
+        }
+        
+        #researchNotes {
+            bottom: 20px;
+            left: 20px;
+            width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
         }
         
         #gameOver {
@@ -200,8 +228,6 @@
             margin: 20px 0;
         }
         
-
-        
         .cart-kill-counter {
             position: absolute;
             font-size: 12px;
@@ -212,9 +238,146 @@
             border-radius: 10px;
             pointer-events: none;
         }
+        
+        .mode-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .toggle-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .toggle-btn:hover {
+            background: rgba(0, 255, 136, 0.4);
+        }
+        
+        .toggle-btn.active {
+            background: #00ff88;
+            color: #000;
+        }
+        
+        #pkpdCanvas {
+            width: 100%;
+            height: 150px;
+            margin-top: 10px;
+            border: 1px solid #00ff88;
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+        
+        .graph-label {
+            font-size: 12px;
+            color: #00ff88;
+            text-align: center;
+            margin-top: 5px;
+        }
+        
+        .tutorial-content {
+            padding: 20px;
+        }
+        
+        .tutorial-title {
+            font-size: 24px;
+            color: #00ff88;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .tutorial-text {
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .tutorial-nav {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .research-note {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid #00ff88;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .research-note:hover {
+            background: rgba(0, 255, 136, 0.2);
+        }
+        
+        .research-note.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .note-title {
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .note-content {
+            margin-top: 5px;
+            font-size: 12px;
+            display: none;
+        }
+        
+        .research-note.unlocked .note-content {
+            display: block;
+        }
+        
+        .achievement-popup {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #00ff88, #00ffff);
+            color: #000;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-weight: bold;
+            display: none;
+            animation: achievementSlide 3s ease-in-out;
+        }
+        
+        @keyframes achievementSlide {
+            0% {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+            20% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+            80% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateX(-50%) translateY(-100px);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="mode-toggle">
+        <button class="toggle-btn" id="tutorialToggle">Tutorial</button>
+        <button class="toggle-btn" id="notesToggle">Research Notes</button>
+    </div>
+    
     <canvas id="gameCanvas"></canvas>
     
     <div id="stats" class="ui-panel">
@@ -273,6 +436,57 @@
         <div class="phase-indicator" id="phaseText">Loading Phase</div>
     </div>
     
+    <div id="sciencePanel" class="ui-panel">
+        <h3 style="color: #00ff88; margin-bottom: 10px;">PK/PD Dynamics</h3>
+        <canvas id="pkpdCanvas"></canvas>
+        <div class="graph-label">Time →</div>
+        <div style="margin-top: 15px; font-size: 12px; line-height: 1.4;">
+            <div style="color: #00ff88;">● mRNA Level</div>
+            <div style="color: #00ffff;">● CAR-T Expression</div>
+            <div style="color: #ff0044;">● B-Cell Count</div>
+            <div style="color: #ffaa00;">● TMCC Factor</div>
+        </div>
+    </div>
+    
+    <div id="tutorialPanel" class="ui-panel">
+        <div class="tutorial-content">
+            <h2 class="tutorial-title" id="tutorialTitle">Welcome to CAR-T Training</h2>
+            <div class="tutorial-text" id="tutorialText">
+                Learn how to engineer CAR-T cells using lipid nanoparticles (LNPs) and understand the complex dynamics of immunotherapy!
+            </div>
+            <div class="tutorial-nav">
+                <button id="prevTutorial">Previous</button>
+                <button id="nextTutorial">Next</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="researchNotes" class="ui-panel">
+        <h3 style="color: #00ff88; margin-bottom: 10px;">Research Journal</h3>
+        <div id="notesList">
+            <div class="research-note locked" data-unlock="start">
+                <div class="note-title">📚 Entry 1: LNP Basics</div>
+                <div class="note-content">Lipid nanoparticles deliver mRNA to T-cells, transforming them into cancer-fighting CAR-T cells. This represents a major advancement over traditional ex-vivo manufacturing.</div>
+            </div>
+            <div class="research-note locked" data-unlock="10kills">
+                <div class="note-title">🔬 Entry 2: TMCC Discovery</div>
+                <div class="note-content">Target-Mediated CAR-T Clearance (TMCC) occurs when high antigen burden accelerates CAR-T exhaustion. This creates a catch-22: more targets = faster clearance.</div>
+            </div>
+            <div class="research-note locked" data-unlock="phase2">
+                <div class="note-title">💊 Entry 3: Dosing Strategy</div>
+                <div class="note-content">Optimal dosing requires balancing initial depletion with sustained pressure. Small doses reduce TMCC burden, while large doses capitalize on low-TMCC windows.</div>
+            </div>
+            <div class="research-note locked" data-unlock="50kills">
+                <div class="note-title">🧬 Entry 4: Homeostasis</div>
+                <div class="note-content">B-cell repopulation follows homeostatic principles - the body tries to maintain normal levels. Complete depletion requires overwhelming this natural recovery.</div>
+            </div>
+            <div class="research-note locked" data-unlock="win">
+                <div class="note-title">🏆 Entry 5: Clinical Translation</div>
+                <div class="note-content">This model predicts optimal dosing regimens for clinical trials. The key insight: repeat dosing after partial depletion maximizes therapeutic efficacy.</div>
+            </div>
+        </div>
+    </div>
+    
     <div id="tutorial" class="ui-panel">
         <h4 style="color: #00ff88; margin-bottom: 10px;">Mission Briefing</h4>
         <p>Deploy LNPs to create CAR-T cells! Each CAR-T can eliminate 3 B-cells. High B-cell counts increase TMCC (red zone), causing rapid CAR-T clearance. <strong style="color: #ff00ff;">Warning: B-cells continuously repopulate!</strong> Adjust your dose and maintain pressure to achieve complete depletion!</p>
@@ -285,15 +499,21 @@
         <button onclick="location.reload()">Play Again</button>
     </div>
     
-    <div id="comboIndicator"></div>
+    <div class="achievement-popup" id="achievementPopup"></div>
     
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const pkpdCanvas = document.getElementById('pkpdCanvas');
+        const pkpdCtx = pkpdCanvas.getContext('2d');
         
         // Set canvas size
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        
+        // Set PK/PD canvas size
+        pkpdCanvas.width = 280;
+        pkpdCanvas.height = 150;
         
         // Game state
         let gameState = {
@@ -307,8 +527,41 @@
             combo: 0,
             lastDeployTime: 0,
             gameActive: true,
-            currentDose: 20
+            currentDose: 20,
+            // Educational tracking
+            totalKills: 0,
+            pkpdHistory: [],
+            tutorialStep: 0,
+            unlockedNotes: new Set(['start'])
         };
+        
+        // Tutorial content
+        const tutorials = [
+            {
+                title: "Welcome to CAR-T Training",
+                text: "In this simulation, you'll learn how to use lipid nanoparticles (LNPs) to create CAR-T cells that eliminate B-cells. This models real immunotherapy!"
+            },
+            {
+                title: "Understanding LNPs",
+                text: "LNPs (green particles) carry mRNA into T-cells. After deployment, they transform into CAR-T cells (cyan). Each dose creates multiple CAR-T cells based on the mRNA amount."
+            },
+            {
+                title: "The TMCC Challenge",
+                text: "TMCC (Target-Mediated CAR-T Clearance) is your biggest enemy. When B-cell count is HIGH, CAR-T cells die quickly. Watch the TMCC indicator - RED means rapid clearance!"
+            },
+            {
+                title: "Strategic Dosing",
+                text: "Start with small doses (10-100 mRNA) when TMCC is high. Once you've reduced B-cells and TMCC turns GREEN, deploy larger doses for maximum effect."
+            },
+            {
+                title: "B-Cell Repopulation",
+                text: "B-cells continuously repopulate from the edges (purple flash). The fewer B-cells remain, the faster they reproduce. You must maintain constant pressure!"
+            },
+            {
+                title: "Victory Conditions",
+                text: "To win, eliminate ALL B-cells before they can repopulate. This requires strategic timing and dose escalation. Good luck, researcher!"
+            }
+        ];
         
         // Classes
         class Particle {
@@ -319,13 +572,13 @@
                 this.radius = type === 'lnp' ? 8 : type === 'cart' ? 15 : 10;
                 this.vx = (Math.random() - 0.5) * 2;
                 this.vy = (Math.random() - 0.5) * 2;
-                this.life = type === 'cart' ? 150 : 100; // CAR-T cells start with more life
+                this.life = type === 'cart' ? 150 : 100;
                 this.target = null;
-                this.speed = type === 'cart' ? 5 : 1; // Increased from 3
+                this.speed = type === 'cart' ? 5 : 1;
                 this.color = type === 'lnp' ? '#00ff88' : type === 'cart' ? '#00ffff' : '#ff0044';
                 this.killCount = 0;
                 this.maxKills = 3;
-                this.isTargeted = false; // For B-cells to track if they're being hunted
+                this.isTargeted = false;
             }
             
             update() {
@@ -348,13 +601,17 @@
                             this.killCount++;
                             gameState.score += 100 * (1 + gameState.combo * 0.1);
                             gameState.combo++;
+                            gameState.totalKills++;
                             
                             // Show kill counter
                             this.showKillCounter();
                             
+                            // Check achievements
+                            checkAchievements();
+                            
                             // Check if exhausted
                             if (this.killCount >= this.maxKills) {
-                                this.life = 0; // Immediate death after 3rd kill
+                                this.life = 0;
                             } else {
                                 // Find new target if still has kills left
                                 this.target = null;
@@ -385,12 +642,12 @@
                 
                 // TMCC decay for CAR-T cells
                 if (this.type === 'cart' && this.killCount < this.maxKills) {
-                    this.life -= gameState.tmccLevel * 0.4; // Reduced from 0.8
+                    this.life -= gameState.tmccLevel * 0.4;
                 }
                 
                 // Natural decay
                 if (this.type !== 'bcell') {
-                    this.life -= 0.05; // Reduced from 0.1
+                    this.life -= 0.05;
                 }
             }
             
@@ -508,7 +765,7 @@
             }
         }
         
-        // Initialize B-cells (3x the CAR-T cells we expect)
+        // Initialize B-cells
         function initBCells() {
             for (let i = 0; i < 100; i++) {
                 gameState.bCells.push(new Particle(
@@ -527,7 +784,7 @@
             gameState.mRNA -= dose;
             
             // Create LNP particles based on dose
-            const particleCount = Math.min(Math.floor(dose / 10), 1000); // Cap at 1000 particles for performance
+            const particleCount = Math.min(Math.floor(dose / 10), 1000);
             
             // For massive doses, create particles in waves
             if (particleCount > 100) {
@@ -571,7 +828,6 @@
             
             gameState.lastDeployTime = Date.now();
         }
-
         
         // Update TMCC visual
         function updateTMCC() {
@@ -586,6 +842,132 @@
                 tmccText.textContent = 'LOW';
                 tmccText.style.color = '#00ff44';
             }
+        }
+        
+        // Update PK/PD graph
+        function updatePKPD() {
+            // Add current state to history
+            gameState.pkpdHistory.push({
+                mRNA: gameState.mRNA / 100000,
+                carT: Math.min(gameState.carTCells.length / 50, 1),
+                bCells: gameState.bCells.length / 100,
+                tmcc: gameState.tmccLevel
+            });
+            
+            // Keep only last 100 points
+            if (gameState.pkpdHistory.length > 100) {
+                gameState.pkpdHistory.shift();
+            }
+            
+            // Clear canvas with black background
+            pkpdCtx.fillStyle = '#000';
+            pkpdCtx.fillRect(0, 0, pkpdCanvas.width, pkpdCanvas.height);
+            
+            // Draw grid
+            pkpdCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            pkpdCtx.lineWidth = 0.5;
+            
+            // Horizontal grid lines
+            for (let i = 0; i <= 4; i++) {
+                const y = (pkpdCanvas.height / 4) * i;
+                pkpdCtx.beginPath();
+                pkpdCtx.moveTo(0, y);
+                pkpdCtx.lineTo(pkpdCanvas.width, y);
+                pkpdCtx.stroke();
+            }
+            
+            // Draw axes
+            pkpdCtx.strokeStyle = '#666';
+            pkpdCtx.lineWidth = 2;
+            pkpdCtx.beginPath();
+            pkpdCtx.moveTo(0, pkpdCanvas.height - 1);
+            pkpdCtx.lineTo(pkpdCanvas.width, pkpdCanvas.height - 1);
+            pkpdCtx.moveTo(1, 0);
+            pkpdCtx.lineTo(1, pkpdCanvas.height);
+            pkpdCtx.stroke();
+            
+            // Only draw if we have data
+            if (gameState.pkpdHistory.length < 2) return;
+            
+            // Draw curves
+            const curves = [
+                { data: 'mRNA', color: '#00ff88', width: 3 },
+                { data: 'carT', color: '#00ffff', width: 3 },
+                { data: 'bCells', color: '#ff0044', width: 3 },
+                { data: 'tmcc', color: '#ffaa00', width: 2 }
+            ];
+            
+            curves.forEach(curve => {
+                pkpdCtx.strokeStyle = curve.color;
+                pkpdCtx.lineWidth = curve.width;
+                pkpdCtx.beginPath();
+                
+                gameState.pkpdHistory.forEach((point, i) => {
+                    const x = (i / (gameState.pkpdHistory.length - 1)) * (pkpdCanvas.width - 2) + 1;
+                    const y = (pkpdCanvas.height - 2) - (point[curve.data] * (pkpdCanvas.height - 4)) - 1;
+                    
+                    if (i === 0) {
+                        pkpdCtx.moveTo(x, y);
+                    } else {
+                        pkpdCtx.lineTo(x, y);
+                    }
+                });
+                
+                pkpdCtx.stroke();
+            });
+            
+            // Draw labels on the right
+            pkpdCtx.font = '10px Arial';
+            pkpdCtx.textAlign = 'right';
+            const lastPoint = gameState.pkpdHistory[gameState.pkpdHistory.length - 1];
+            
+            curves.forEach((curve, i) => {
+                const y = (pkpdCanvas.height - 2) - (lastPoint[curve.data] * (pkpdCanvas.height - 4)) - 1;
+                pkpdCtx.fillStyle = curve.color;
+                pkpdCtx.fillText((lastPoint[curve.data] * 100).toFixed(0) + '%', pkpdCanvas.width - 5, Math.max(10, Math.min(pkpdCanvas.height - 10, y + 3)));
+            });
+        }
+        
+        // Check achievements
+        function checkAchievements() {
+            // Silently unlock research notes without popups
+            if (gameState.totalKills === 10 && !gameState.unlockedNotes.has('10kills')) {
+                gameState.unlockedNotes.add('10kills');
+                updateResearchNotes();
+            }
+            
+            if (gameState.phase === 2 && !gameState.unlockedNotes.has('phase2')) {
+                gameState.unlockedNotes.add('phase2');
+                updateResearchNotes();
+            }
+            
+            if (gameState.totalKills === 50 && !gameState.unlockedNotes.has('50kills')) {
+                gameState.unlockedNotes.add('50kills');
+                updateResearchNotes();
+            }
+        }
+        
+        // Show achievement popup
+        function showAchievement(text) {
+            const popup = document.getElementById('achievementPopup');
+            popup.textContent = text;
+            popup.style.display = 'block';
+            
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Update research notes display
+        function updateResearchNotes() {
+            const notes = document.querySelectorAll('.research-note');
+            notes.forEach(note => {
+                const unlockCriteria = note.dataset.unlock;
+                if (gameState.unlockedNotes.has(unlockCriteria)) {
+                    note.classList.remove('locked');
+                    note.classList.add('unlocked');
+                }
+            });
         }
         
         // Update game
@@ -630,7 +1012,7 @@
             gameState.lnpParticles = gameState.lnpParticles.filter(p => p.life > 0);
             
             // B-cell repopulation - increases as B-cells decrease (homeostasis)
-            const repopRate = 0.05 + (1 - gameState.bCells.length / 100) * 0.1; // Much higher rate
+            const repopRate = 0.05 + (1 - gameState.bCells.length / 100) * 0.1;
             if (Math.random() < repopRate && gameState.bCells.length < 150) {
                 // Spawn new B-cells at edges
                 const edge = Math.floor(Math.random() * 4);
@@ -668,6 +1050,7 @@
             if (remainingBCells < 70 && gameState.phase === 1) {
                 gameState.phase = 2;
                 document.getElementById('phaseText').textContent = 'Depletion Phase';
+                checkAchievements();
             } else if (remainingBCells < 30 && gameState.phase === 2) {
                 gameState.phase = 3;
                 document.getElementById('phaseText').textContent = 'Final Phase';
@@ -679,6 +1062,7 @@
             }
             
             updateUI();
+            updatePKPD();
         }
         
         // Draw game
@@ -741,6 +1125,9 @@
         // End game
         function endGame() {
             gameState.gameActive = false;
+            gameState.unlockedNotes.add('win');
+            updateResearchNotes();
+            
             const finalScore = Math.floor(gameState.score);
             document.getElementById('finalScore').textContent = `Final Score: ${finalScore}`;
             
@@ -755,6 +1142,16 @@
             
             document.getElementById('performance').textContent = performance;
             document.getElementById('gameOver').style.display = 'block';
+        }
+        
+        // Tutorial navigation
+        function showTutorial(step) {
+            const tutorial = tutorials[step];
+            document.getElementById('tutorialTitle').textContent = tutorial.title;
+            document.getElementById('tutorialText').textContent = tutorial.text;
+            
+            document.getElementById('prevTutorial').disabled = step === 0;
+            document.getElementById('nextTutorial').textContent = step === tutorials.length - 1 ? 'Start Game' : 'Next';
         }
         
         // Game loop
@@ -790,6 +1187,37 @@
             }
         });
         
+        // Mode toggles
+        document.getElementById('tutorialToggle').addEventListener('click', function() {
+            const panel = document.getElementById('tutorialPanel');
+            const isVisible = panel.style.display === 'block';
+            panel.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) showTutorial(0);
+        });
+        
+        document.getElementById('notesToggle').addEventListener('click', function() {
+            this.classList.toggle('active');
+            const panel = document.getElementById('researchNotes');
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        });
+        
+        // Tutorial navigation
+        document.getElementById('prevTutorial').addEventListener('click', () => {
+            if (gameState.tutorialStep > 0) {
+                gameState.tutorialStep--;
+                showTutorial(gameState.tutorialStep);
+            }
+        });
+        
+        document.getElementById('nextTutorial').addEventListener('click', () => {
+            if (gameState.tutorialStep < tutorials.length - 1) {
+                gameState.tutorialStep++;
+                showTutorial(gameState.tutorialStep);
+            } else {
+                document.getElementById('tutorialPanel').style.display = 'none';
+            }
+        });
+        
         // Keyboard controls
         document.addEventListener('keydown', (e) => {
             if (e.key === ' ') {
@@ -800,6 +1228,7 @@
         
         // Initialize game
         initBCells();
+        updateResearchNotes();
         gameLoop();
         
         // Hide tutorial after 10 seconds
