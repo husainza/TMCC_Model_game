@@ -264,7 +264,7 @@
         
         <div class="stat-row">
             <span class="stat-label">B-Cells Remaining</span>
-            <span class="stat-value" id="bCellCount">60</span>
+            <span class="stat-value" id="bCellCount">100</span>
         </div>
         
         <div class="stat-row">
@@ -292,7 +292,7 @@
         </div>
         
         <button id="deployLNP">Deploy LNP</button>
-        <button id="resetGame" style="background: linear-gradient(135deg, #ff0044, #ff6644); margin-top: 10px;">Reset Game</button>
+        <button id="resetGame" onclick="location.reload()" style="background: linear-gradient(135deg, #ff0044, #ff6644); margin-top: 10px;">Reset Game</button>
         <div class="phase-indicator" id="phaseText">Loading Phase</div>
     </div>
     
@@ -427,8 +427,9 @@
                 let closest = null;
                 let minDist = Infinity;
                 
+                // First, find closest untargeted B-cell
                 gameState.bCells.forEach(bCell => {
-                    if (bCell.life > 0 && !bCell.isTargeted) { // Only target untargeted B-cells
+                    if (bCell.life > 0 && !bCell.isTargeted) {
                         const dist = Math.sqrt((bCell.x - this.x) ** 2 + (bCell.y - this.y) ** 2);
                         if (dist < minDist) {
                             minDist = dist;
@@ -437,9 +438,38 @@
                     }
                 });
                 
+                // If no untargeted B-cells but there are targeted ones nearby, check if we're closer
+                if (!closest) {
+                    gameState.bCells.forEach(bCell => {
+                        if (bCell.life > 0 && bCell.isTargeted) {
+                            const dist = Math.sqrt((bCell.x - this.x) ** 2 + (bCell.y - this.y) ** 2);
+                            
+                            // Find who's currently targeting this B-cell
+                            let currentHunter = null;
+                            gameState.carTCells.forEach(cart => {
+                                if (cart.target === bCell && cart !== this) {
+                                    currentHunter = cart;
+                                }
+                            });
+                            
+                            if (currentHunter) {
+                                const currentDist = Math.sqrt((bCell.x - currentHunter.x) ** 2 + (bCell.y - currentHunter.y) ** 2);
+                                
+                                // If we're significantly closer (50% closer), steal the target
+                                if (dist < currentDist * 0.5 && dist < minDist) {
+                                    minDist = dist;
+                                    closest = bCell;
+                                    // Release the B-cell from the other hunter
+                                    currentHunter.target = null;
+                                }
+                            }
+                        }
+                    });
+                }
+                
                 this.target = closest;
                 if (closest) {
-                    closest.isTargeted = true; // Mark as targeted
+                    closest.isTargeted = true;
                 }
             }
             
@@ -504,7 +534,7 @@
         
         // Initialize B-cells (3x the CAR-T cells we expect)
         function initBCells() {
-            for (let i = 0; i < 60; i++) {
+            for (let i = 0; i < 100; i++) {
                 gameState.bCells.push(new Particle(
                     Math.random() * (canvas.width - 200) + 100,
                     Math.random() * (canvas.height - 100) + 50,
@@ -615,8 +645,8 @@
             gameState.lnpParticles = gameState.lnpParticles.filter(p => p.life > 0);
             
             // B-cell repopulation - increases as B-cells decrease (homeostasis)
-            const repopRate = 0.02 + (1 - gameState.bCells.length / 60) * 0.03; // Higher rate when fewer B-cells
-            if (Math.random() < repopRate && gameState.bCells.length < 80) {
+            const repopRate = 0.05 + (1 - gameState.bCells.length / 100) * 0.1; // Much higher rate
+            if (Math.random() < repopRate && gameState.bCells.length < 150) {
                 // Spawn new B-cells at edges
                 const edge = Math.floor(Math.random() * 4);
                 let x, y;
@@ -635,7 +665,7 @@
             }
             
             // Update TMCC based on B-cell count
-            gameState.tmccLevel = gameState.bCells.length / 60;
+            gameState.tmccLevel = gameState.bCells.length / 100;
             updateTMCC();
             
             // Regenerate mRNA slowly
@@ -650,10 +680,10 @@
             
             // Check phase progression
             const remainingBCells = gameState.bCells.length;
-            if (remainingBCells < 40 && gameState.phase === 1) {
+            if (remainingBCells < 70 && gameState.phase === 1) {
                 gameState.phase = 2;
                 document.getElementById('phaseText').textContent = 'Depletion Phase';
-            } else if (remainingBCells < 20 && gameState.phase === 2) {
+            } else if (remainingBCells < 30 && gameState.phase === 2) {
                 gameState.phase = 3;
                 document.getElementById('phaseText').textContent = 'Final Phase';
             }
